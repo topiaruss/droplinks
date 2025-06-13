@@ -83,6 +83,12 @@ main {
     gap: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
+    transition: all 0.3s ease;
+}
+
+.panels-grid.compact {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
 }
 
 .panel {
@@ -95,6 +101,12 @@ main {
     cursor: move;
     position: relative;
     border: 2px dashed transparent;
+}
+
+.compact .panel {
+    padding: 1rem;
+    min-height: 150px;
+    border-radius: 8px;
 }
 
 .panel:hover {
@@ -121,10 +133,19 @@ main {
     border-bottom: 1px solid #e2e8f0;
 }
 
+.compact .panel-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+}
+
 .panel-title {
     font-weight: 600;
     color: #2d3748;
     font-size: 1.1rem;
+}
+
+.compact .panel-title {
+    font-size: 1rem;
 }
 
 .panel-id {
@@ -177,6 +198,11 @@ main {
     transition: all 0.2s ease;
     cursor: pointer;
     color: inherit;
+}
+
+.compact .link-item {
+    padding: 0.5rem;
+    gap: 0.5rem;
 }
 
 .link-item:hover {

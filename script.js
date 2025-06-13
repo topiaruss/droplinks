@@ -5,6 +5,10 @@ class DropLinks {
         this.draggedPanel = null;
         this.draggedLink = null;
         this.deleteTarget = null;
+        this.isCompactView = false;
+        this.lastSaveTime = null;
+        this.syncInterval = null;
+        this.fileHandle = null; // For File System Access API
         
         this.init();
     }
@@ -20,12 +24,25 @@ class DropLinks {
             this.addPanel();
             this.addPanel();
         }
+        
+        // Start sync interval to check for file updates every 2 minutes
+        this.startSyncInterval();
     }
 
     bindEvents() {
         // Add panel button
         document.getElementById('add-panel').addEventListener('click', () => {
             this.addPanel();
+        });
+
+        // View toggle button
+        document.getElementById('view-toggle').addEventListener('click', () => {
+            this.toggleView();
+        });
+
+        // Manual sync button
+        document.getElementById('sync-now').addEventListener('click', () => {
+            this.checkForFileUpdates();
         });
 
         // Export data button
@@ -49,13 +66,14 @@ class DropLinks {
             }
         });
 
-        // Global drag events for external links
+        // Global drag events for external links and JSON files
         document.addEventListener('dragover', (e) => {
             e.preventDefault();
         });
 
         document.addEventListener('drop', (e) => {
             e.preventDefault();
+            this.handleGlobalDrop(e);
         });
     }
 
@@ -88,6 +106,78 @@ class DropLinks {
     cancelDelete() {
         this.deleteTarget = null;
         document.getElementById('confirmation-modal').classList.remove('show');
+    }
+
+    toggleView() {
+        this.isCompactView = !this.isCompactView;
+        const container = document.getElementById('panels-container');
+        const toggleBtn = document.getElementById('view-toggle');
+        const toggleText = toggleBtn.querySelector('.toggle-text');
+        
+        if (this.isCompactView) {
+            container.classList.add('compact');
+            toggleText.textContent = 'Large View';
+        } else {
+            container.classList.remove('compact');
+            toggleText.textContent = 'Compact View';
+        }
+        
+        this.saveToStorage();
+    }
+
+    handleGlobalDrop(e) {
+        // Check if files were dropped
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            
+            // Check if it's a JSON file
+            if (file.type === 'application/json' || file.name.endsWith('.json') || file.name === '.droplinks') {
+                this.importFromFile(file);
+                return;
+            }
+        }
+    }
+
+    async importFromFile(file) {
+        try {
+            const text = await file.text();
+            const success = this.importData(text);
+            
+            if (success) {
+                // Show success message briefly
+                this.showMessage('Data imported successfully!', 'success');
+            } else {
+                this.showMessage('Failed to import data. Invalid JSON format.', 'error');
+            }
+        } catch (e) {
+            console.error('Import error:', e);
+            this.showMessage('Failed to read file.', 'error');
+        }
+    }
+
+    showMessage(message, type = 'info') {
+        // Create a temporary message overlay
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${type === 'success' ? '#48bb78' : type === 'error' ? '#e53e3e' : '#4299e1'};
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-weight: 500;
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            document.body.removeChild(messageDiv);
+        }, 3000);
     }
 
     async addLinkToPanel(panelId, url) {
@@ -293,6 +383,8 @@ class DropLinks {
             e.preventDefault();
             panelElement.classList.remove('drag-over');
 
+            const dragData = e.dataTransfer.getData('text/plain');
+            
             // Check if it's a link being moved between panels
             if (this.draggedLink) {
                 const targetPanelId = panel.id;
@@ -442,10 +534,197 @@ class DropLinks {
     }
 
     saveToStorage() {
-        localStorage.setItem('droplinks-data', JSON.stringify({
+        this.lastSaveTime = new Date().toISOString();
+        
+        const data = {
             panels: this.panels,
-            panelCounter: this.panelCounter
-        }));
+            panelCounter: this.panelCounter,
+            isCompactView: this.isCompactView,
+            lastSaveTime: this.lastSaveTime
+        };
+        
+        localStorage.setItem('droplinks-data', JSON.stringify(data));
+        
+        // Auto-save to Downloads folder
+        this.autoSaveToDownloads(data);
+    }
+
+    autoSaveToDownloads(data) {
+        try {
+            const exportData = {
+                ...data,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            // Use a more unique approach to try to force overwrite
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            
+            // Try using the File System Access API for better file control (Chrome/Edge)
+            if ('showSaveFilePicker' in window) {
+                this.saveWithFileSystemAPI(blob);
+            } else {
+                // Fallback to regular download (will still increment unfortunately)
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '.droplinks';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        } catch (e) {
+            console.log('Auto-save failed:', e);
+        }
+    }
+
+    async saveWithFileSystemAPI(blob) {
+        try {
+            // Only prompt for file location on first save
+            if (!this.fileHandle) {
+                this.fileHandle = await window.showSaveFilePicker({
+                    suggestedName: '.droplinks',
+                    types: [{
+                        description: 'DropLinks files',
+                        accept: { 'application/json': ['.droplinks', '.json'] }
+                    }]
+                });
+                this.saveFileHandleToStorage();
+            }
+            
+            const writable = await this.fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            
+            console.log('Auto-saved to', this.fileHandle.name);
+        } catch (e) {
+            console.log('File System API save failed, falling back:', e);
+            // Reset file handle if save failed
+            this.fileHandle = null;
+            
+            // Fallback to regular download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '.droplinks';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    startSyncInterval() {
+        // Check for file updates every 2 minutes (120,000 ms)
+        this.syncInterval = setInterval(() => {
+            this.checkForFileUpdates();
+        }, 120000);
+        
+        console.log('Auto-sync started - checking for updates every 2 minutes');
+    }
+
+    stopSyncInterval() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
+            console.log('Auto-sync stopped');
+        }
+    }
+
+    async checkForFileUpdates() {
+        try {
+            // If we have a saved file handle, use it directly
+            if (this.fileHandle) {
+                console.log('Reading from saved file location...');
+                const file = await this.fileHandle.getFile();
+                await this.checkFileTimestamp(file);
+                return;
+            }
+            
+            // If File System Access API is available, use it to remember the file
+            if ('showOpenFilePicker' in window) {
+                console.log('Please select your .droplinks file once (location will be remembered)');
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'DropLinks files',
+                        accept: { 'application/json': ['.droplinks', '.json'] }
+                    }]
+                });
+                
+                // Remember this file handle for future syncs
+                this.fileHandle = fileHandle;
+                this.saveFileHandleToStorage();
+                
+                const file = await fileHandle.getFile();
+                await this.checkFileTimestamp(file);
+                return;
+            }
+            
+            // Fallback for browsers without File System Access API
+            this.fallbackFileSelection();
+        } catch (e) {
+            if (e.name !== 'AbortError') {
+                console.error('File access failed:', e);
+                this.fallbackFileSelection();
+            }
+        }
+    }
+
+    fallbackFileSelection() {
+        // Create a hidden file input to trigger file selection
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.droplinks,.json';
+        input.style.display = 'none';
+        
+        console.log('Please select your .droplinks file to check for updates');
+        
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.checkFileTimestamp(file);
+            }
+            document.body.removeChild(input);
+        });
+        
+        document.body.appendChild(input);
+        input.click();
+    }
+
+    saveFileHandleToStorage() {
+        // Note: File handles can't be serialized directly to localStorage
+        // We just track that we have one for this session
+        this.hasRememberedFile = true;
+    }
+
+    async checkFileTimestamp(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            if (data.lastSaveTime) {
+                const fileTime = new Date(data.lastSaveTime);
+                const localTime = new Date(this.lastSaveTime || 0);
+                
+                if (fileTime > localTime) {
+                    console.log('File is newer than local data, importing...');
+                    this.showMessage('Newer data found - syncing...', 'info');
+                    
+                    // Import the newer data
+                    const success = this.importData(text);
+                    if (success) {
+                        this.showMessage('Synced with newer data!', 'success');
+                    }
+                } else {
+                    console.log('Local data is up to date');
+                }
+            }
+        } catch (e) {
+            console.error('Failed to check file timestamp:', e);
+        }
     }
 
     loadFromStorage() {
@@ -454,6 +733,21 @@ class DropLinks {
             const parsed = JSON.parse(data);
             this.panels = parsed.panels || [];
             this.panelCounter = parsed.panelCounter || 0;
+            this.isCompactView = parsed.isCompactView || false;
+            this.lastSaveTime = parsed.lastSaveTime || null;
+            
+            // Apply the view state
+            const container = document.getElementById('panels-container');
+            const toggleBtn = document.getElementById('view-toggle');
+            const toggleText = toggleBtn.querySelector('.toggle-text');
+            
+            if (this.isCompactView) {
+                container.classList.add('compact');
+                toggleText.textContent = 'Large View';
+            } else {
+                container.classList.remove('compact');
+                toggleText.textContent = 'Compact View';
+            }
         }
     }
 
@@ -483,7 +777,39 @@ class DropLinks {
             if (data.panels && Array.isArray(data.panels)) {
                 this.panels = data.panels;
                 this.panelCounter = Math.max(...this.panels.map(p => p.id), 0);
-                this.saveToStorage();
+                
+                // Import timestamps
+                if (data.lastSaveTime) {
+                    this.lastSaveTime = data.lastSaveTime;
+                }
+                
+                // Import view state if available
+                if (data.isCompactView !== undefined) {
+                    this.isCompactView = data.isCompactView;
+                    
+                    // Apply the view state
+                    const container = document.getElementById('panels-container');
+                    const toggleBtn = document.getElementById('view-toggle');
+                    const toggleText = toggleBtn.querySelector('.toggle-text');
+                    
+                    if (this.isCompactView) {
+                        container.classList.add('compact');
+                        toggleText.textContent = 'Large View';
+                    } else {
+                        container.classList.remove('compact');
+                        toggleText.textContent = 'Compact View';
+                    }
+                }
+                
+                // Save to localStorage but don't auto-save to Downloads (to avoid sync loops)
+                const saveData = {
+                    panels: this.panels,
+                    panelCounter: this.panelCounter,
+                    isCompactView: this.isCompactView,
+                    lastSaveTime: this.lastSaveTime
+                };
+                localStorage.setItem('droplinks-data', JSON.stringify(saveData));
+                
                 this.render();
                 return true;
             }
