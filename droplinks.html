@@ -207,6 +207,7 @@
 
       .compact .link-title {
         -webkit-line-clamp: 1; /* Single line in compact view */
+        line-clamp: 1; /* Modern property */
         max-height: calc(1.4em * 1);
       }
 
@@ -238,14 +239,17 @@
         font-weight: 500;
         color: #2d3748;
         margin-bottom: 0.25rem;
-        /* Multi-line approach for better mobile readability */
+        /* Multi-line approach for better readability */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
+        line-clamp: 2; /* Modern property */
         overflow: hidden;
         white-space: normal;
         line-height: 1.4;
         max-height: calc(1.4em * 2); /* 2 lines worth */
+        word-break: break-word; /* Break long words */
+        hyphens: auto; /* Add hyphens for better wrapping */
       }
 
       .link-url {
@@ -388,6 +392,7 @@
 
         .link-title {
           -webkit-line-clamp: 3; /* More lines on mobile since cards are full-width */
+          line-clamp: 3; /* Modern property */
           max-height: calc(1.4em * 3);
         }
       }
