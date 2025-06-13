@@ -313,7 +313,16 @@ test.describe("DropLinks E2E Tests", () => {
     ).toHaveCount(1);
   });
 
-  test("should drag panels to reorder them", async ({ page }) => {
+  test("should drag panels to reorder them", async ({ page }, testInfo) => {
+    // Skip panel dragging tests on mobile devices since HTML5 drag API doesn't work on touch
+    if (
+      testInfo.project.name === "Mobile Chrome" ||
+      testInfo.project.name === "Mobile Safari"
+    ) {
+      test.skip();
+      return;
+    }
+
     // Wait for app to be ready
     await page.waitForFunction(() => window.dropLinks !== undefined);
 
