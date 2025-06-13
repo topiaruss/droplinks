@@ -1,0 +1,45 @@
+name: Pre-commit Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        npm ci
+        pip install pre-commit
+    
+    - name: Cache pre-commit hooks
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+    
+    - name: Run pre-commit
+      run: pre-commit run --all-files
+      
+    - name: Upload pre-commit results
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: pre-commit-failures
+        path: .pre-commit-log.txt

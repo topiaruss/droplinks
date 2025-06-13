@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+
+# Test results and reports
+test-results/
+playwright-report/
+coverage/
+.nyc_output
+junit.xml
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Pre-commit
+.pre-commit-log.txt
+
+# Temporary files
+*.tmp
+*.temp
+
+# Claude Code specific
+.claude/
+
+# Build outputs
+dist/
+build/

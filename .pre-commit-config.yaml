@@ -1,0 +1,134 @@
+repos:
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: 'package-lock\.json$'
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # JavaScript/Node.js specific
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.57.0
+    hooks:
+      - id: eslint
+        files: \.(js|html)$
+        additional_dependencies:
+          - eslint@^8.0.0
+          - eslint-plugin-html@^7.1.0
+        args: ['--fix']
+
+  # Package.json validation
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: \.(js|json|md|html|css)$
+        exclude: 'package-lock\.json$'
+        args: ['--write']
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '\.lock$|node_modules/|test-results/|playwright-report/'
+
+  # Test validation
+  - repo: local
+    hooks:
+      - id: jest-unit-tests
+        name: Run Jest unit tests
+        entry: npm run test:unit
+        language: system
+        files: \.(js|test\.js)$
+        pass_filenames: false
+        stages: [commit]
+
+      - id: eslint-html
+        name: ESLint HTML files
+        entry: npm run lint
+        language: system
+        files: \.html$
+        pass_filenames: false
+
+      - id: package-json-validate
+        name: Validate package.json
+        entry: bash -c 'npm ls --depth=0 > /dev/null 2>&1 || (echo "Package.json validation failed - run npm install"; exit 1)'
+        language: system
+        files: package\.json$
+        pass_filenames: false
+
+      - id: no-debug-statements
+        name: Check for debug statements
+        entry: bash -c 'if grep -r "console\.log\|debugger\|\.only(" --include="*.js" --include="*.html" --exclude-dir=node_modules --exclude-dir=test-results .; then echo "Remove debug statements before commit"; exit 1; fi'
+        language: system
+        files: \.(js|html)$
+        pass_filenames: false
+
+      - id: test-file-naming
+        name: Check test file naming convention
+        entry: bash -c 'for file in tests/**/*.js; do if [[ ! "$file" =~ \.(test|spec)\.js$ ]]; then echo "Test files must end with .test.js or .spec.js: $file"; exit 1; fi; done'
+        language: system
+        files: ^tests/.*\.js$
+        pass_filenames: false
+
+  # Commit message validation
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # File size and dependency checks
+  - repo: local
+    hooks:
+      - id: check-bundle-size
+        name: Check for large dependencies
+        entry: bash -c 'if [ -f package-lock.json ]; then size=$(du -sh node_modules 2>/dev/null | cut -f1 || echo "0K"); echo "Dependencies size: $size"; if [[ "$size" =~ ([0-9]+)M ]] && [ ${BASH_REMATCH[1]} -gt 500 ]; then echo "Warning: Large dependency size detected"; fi; fi'
+        language: system
+        files: package-lock\.json$
+        pass_filenames: false
+
+      - id: playwright-config-check
+        name: Validate Playwright config
+        entry: bash -c 'if [ -f playwright.config.js ]; then node -c playwright.config.js || (echo "Playwright config syntax error"; exit 1); fi'
+        language: system
+        files: playwright\.config\.js$
+        pass_filenames: false
+
+      - id: html-validation
+        name: Basic HTML validation
+        entry: bash -c 'for file in "$@"; do if ! grep -q "<!DOCTYPE html>" "$file"; then echo "Missing DOCTYPE in $file"; exit 1; fi; done'
+        language: system
+        files: \.html$
+
+  # Performance and accessibility pre-checks
+  - repo: local
+    hooks:
+      - id: check-accessibility-basics
+        name: Check basic accessibility requirements
+        entry: bash -c 'for file in "$@"; do if ! grep -q "alt=" "$file" && grep -q "<img" "$file"; then echo "Images without alt attributes found in $file"; exit 1; fi; done'
+        language: system
+        files: \.html$
+
+      - id: check-performance-basics
+        name: Check basic performance requirements
+        entry: bash -c 'for file in "$@"; do if grep -q "src=.*http" "$file"; then echo "External resource links found in $file - consider local hosting"; fi; done'
+        language: system
+        files: \.html$
+
+# Global configuration
+fail_fast: false
+default_stages: [commit]

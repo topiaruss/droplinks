@@ -15,9 +15,12 @@
     "test:watch": "jest --watch tests/unit/",
     "test:coverage": "jest --coverage tests/unit/",
     "lint": "eslint droplinks.html --ext .html",
+    "lint:fix": "eslint droplinks.html --ext .html --fix",
     "lighthouse": "lhci autorun",
     "report": "playwright show-report",
-    "install-browsers": "playwright install"
+    "install-browsers": "playwright install",
+    "prepare": "husky install",
+    "pre-commit": "pre-commit run --all-files"
   },
   "devDependencies": {
     "@lhci/cli": "^0.13.0",
@@ -25,10 +28,13 @@
     "chrome-launcher": "^1.1.0",
     "eslint": "^8.0.0",
     "eslint-plugin-html": "^7.1.0",
+    "husky": "^8.0.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.0.0",
     "jsdom": "^23.0.0",
-    "lighthouse": "^11.0.0"
+    "lighthouse": "^11.0.0",
+    "prettier": "^3.1.0",
+    "pre-commit": "^1.2.2"
   },
   "jest": {
     "testEnvironment": "jsdom",
