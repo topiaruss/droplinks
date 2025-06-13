@@ -308,6 +308,37 @@
             color: white;
         }
 
+        .edit-fields {
+            text-align: left;
+            margin: 1.5rem 0;
+        }
+
+        .field-group {
+            margin-bottom: 1rem;
+        }
+
+        .field-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #5a67d8;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+        }
+
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             header {
@@ -419,7 +450,8 @@
                 }
                 
                 // Start sync interval to check for file updates every 2 minutes
-                this.startSyncInterval();
+                // Disabled auto-sync due to browser security restrictions - use manual sync button instead
+                // this.startSyncInterval();
             }
 
             bindEvents() {
@@ -460,11 +492,31 @@
                 });
 
                 // Global drag events for external links and JSON files
-                document.addEventListener('dragover', (e) => {
+                document.addEventListener('dragenter', (e) => {
+                    console.log('Dragenter event');
                     e.preventDefault();
+                });
+                
+                document.addEventListener('dragover', (e) => {
+                    console.log('Dragover event');
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
                 });
 
                 document.addEventListener('drop', (e) => {
+                    console.log('Drop event detected');
+                    e.preventDefault();
+                    this.handleGlobalDrop(e);
+                });
+                
+                // Also bind to body specifically
+                document.body.addEventListener('dragover', (e) => {
+                    console.log('Body dragover');
+                    e.preventDefault();
+                });
+                
+                document.body.addEventListener('drop', (e) => {
+                    console.log('Body drop');
                     e.preventDefault();
                     this.handleGlobalDrop(e);
                 });
@@ -536,15 +588,24 @@
             }
 
             handleGlobalDrop(e) {
+                console.log('Global drop event triggered', e);
+                console.log('Files:', e.dataTransfer.files);
+                
                 // Check if files were dropped
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                     const file = e.dataTransfer.files[0];
+                    console.log('File dropped:', file.name, file.type);
                     
-                    // Check if it's a JSON file
-                    if (file.type === 'application/json' || file.name.endsWith('.json') || file.name === '.droplinks') {
+                    // Check if it's a JSON file (prioritize filename over MIME type for .droplinks files)
+                    if (file.name.endsWith('.droplinks') || file.name.endsWith('.json') || file.type === 'application/json') {
+                        console.log('Valid file detected, importing...');
                         this.importFromFile(file);
                         return;
+                    } else {
+                        console.log('File not recognized as importable. Name:', file.name, 'Type:', file.type);
                     }
+                } else {
+                    console.log('No files in drop event');
                 }
             }
 
@@ -636,6 +697,84 @@
                         this.addLinkToPanel(panelId, url);
                         document.body.removeChild(modal);
                     } else if (e.target.classList.contains('cancel-paste') || e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+            }
+
+            showLinkEditModal(panelId, linkIndex) {
+                const panel = this.panels.find(p => p.id === panelId);
+                if (!panel || !panel.links[linkIndex]) return;
+
+                const link = panel.links[linkIndex];
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal show';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>Edit Link</h3>
+                        <div class="edit-fields">
+                            <div class="field-group">
+                                <label>Title:</label>
+                                <input type="text" id="edit-title" value="${link.title}" class="edit-input">
+                            </div>
+                            <div class="field-group">
+                                <label>URL:</label>
+                                <input type="text" id="edit-url" value="${link.url}" class="edit-input">
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-primary save-link">Save</button>
+                            <button class="btn btn-secondary cancel-edit">Cancel</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Focus on title input
+                const titleInput = modal.querySelector('#edit-title');
+                titleInput.focus();
+                titleInput.select();
+
+                // Handle save/cancel
+                modal.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('save-link')) {
+                        const newTitle = modal.querySelector('#edit-title').value.trim();
+                        const newUrl = modal.querySelector('#edit-url').value.trim();
+                        
+                        if (newTitle && newUrl && this.isValidUrl(newUrl)) {
+                            // Update the link
+                            link.title = newTitle;
+                            link.url = newUrl;
+                            
+                            // Update domain if URL changed
+                            try {
+                                link.domain = new URL(newUrl).hostname;
+                                link.favicon = `https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`;
+                            } catch (e) {
+                                link.domain = 'Unknown';
+                            }
+                            
+                            this.saveToStorage();
+                            this.render();
+                            this.showMessage('Link updated successfully!', 'success');
+                        } else {
+                            this.showMessage('Please enter a valid title and URL', 'error');
+                            return;
+                        }
+                        
+                        document.body.removeChild(modal);
+                    } else if (e.target.classList.contains('cancel-edit') || e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+
+                // Handle Enter key to save
+                modal.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        modal.querySelector('.save-link').click();
+                    } else if (e.key === 'Escape') {
                         document.body.removeChild(modal);
                     }
                 });
@@ -930,87 +1069,143 @@
                     const url = linkElement.dataset.url;
                     let isDragging = false;
                     let dragStarted = false;
+                    let longPressTimer = null;
+                    let longPressTriggered = false;
                     
                     // Remove draggable attribute and use mouse events instead
                     linkElement.draggable = false;
                     
+                    const startLongPress = (e) => {
+                        if (e.target.classList.contains('delete-btn')) return;
+                        
+                        longPressTimer = setTimeout(() => {
+                            longPressTriggered = true;
+                            this.showLinkEditModal(panelId, linkIndex);
+                        }, 800); // 800ms for long press
+                    };
+                    
+                    const cancelLongPress = () => {
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    };
+                    
+                    // Mouse events
                     linkElement.addEventListener('mousedown', (e) => {
                         if (e.target.classList.contains('delete-btn')) return;
                         
-                        dragStarted = true;
-                        linkElement.style.pointerEvents = 'none';
-                        linkElement.classList.add('dragging');
+                        longPressTriggered = false;
+                        startLongPress(e);
                         
-                        this.draggedLink = {
-                            panelId: panelId,
-                            linkIndex: linkIndex,
-                            element: linkElement
-                        };
-                        
-                        const rect = linkElement.getBoundingClientRect();
-                        const offsetX = e.clientX - rect.left;
-                        const offsetY = e.clientY - rect.top;
-                        
-                        const handleMouseMove = (e) => {
-                            if (!dragStarted) return;
+                        // Small delay to distinguish between click, drag, and long press
+                        setTimeout(() => {
+                            if (longPressTriggered) return;
                             
-                            isDragging = true;
-                            linkElement.style.position = 'fixed';
-                            linkElement.style.left = (e.clientX - offsetX) + 'px';
-                            linkElement.style.top = (e.clientY - offsetY) + 'px';
-                            linkElement.style.zIndex = '1000';
+                            dragStarted = true;
+                            linkElement.style.pointerEvents = 'none';
+                            linkElement.classList.add('dragging');
                             
-                            // Find what's under the cursor
-                            const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
-                            const targetPanel = elementUnder?.closest('.panel');
+                            this.draggedLink = {
+                                panelId: panelId,
+                                linkIndex: linkIndex,
+                                element: linkElement
+                            };
                             
-                            // Remove drag-over class from all panels
-                            document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+                            const rect = linkElement.getBoundingClientRect();
+                            const offsetX = e.clientX - rect.left;
+                            const offsetY = e.clientY - rect.top;
                             
-                            // Add drag-over class to target panel
-                            if (targetPanel && targetPanel !== panelElement) {
-                                targetPanel.classList.add('drag-over');
-                            }
-                        };
-                        
-                        const handleMouseUp = (e) => {
-                            dragStarted = false;
-                            linkElement.style.pointerEvents = '';
-                            linkElement.classList.remove('dragging');
-                            linkElement.style.position = '';
-                            linkElement.style.left = '';
-                            linkElement.style.top = '';
-                            linkElement.style.zIndex = '';
-                            
-                            // Remove drag-over class from all panels
-                            document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
-                            
-                            if (isDragging) {
-                                // Find the target panel
+                            const handleMouseMove = (e) => {
+                                if (!dragStarted || longPressTriggered) return;
+                                
+                                cancelLongPress();
+                                isDragging = true;
+                                linkElement.style.position = 'fixed';
+                                linkElement.style.left = (e.clientX - offsetX) + 'px';
+                                linkElement.style.top = (e.clientY - offsetY) + 'px';
+                                linkElement.style.zIndex = '1000';
+                                
+                                // Find what's under the cursor
                                 const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
                                 const targetPanel = elementUnder?.closest('.panel');
                                 
+                                // Remove drag-over class from all panels
+                                document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+                                
+                                // Add drag-over class to target panel
                                 if (targetPanel && targetPanel !== panelElement) {
-                                    const targetPanelId = parseInt(targetPanel.dataset.panelId);
-                                    this.moveLinkBetweenPanels(panelId, targetPanelId, linkIndex);
+                                    targetPanel.classList.add('drag-over');
                                 }
-                            } else if (!isDragging) {
-                                // This was a click, not a drag
-                                window.open(url, '_blank');
-                            }
+                            };
                             
-                            this.draggedLink = null;
-                            isDragging = false;
+                            const handleMouseUp = (e) => {
+                                cancelLongPress();
+                                dragStarted = false;
+                                linkElement.style.pointerEvents = '';
+                                linkElement.classList.remove('dragging');
+                                linkElement.style.position = '';
+                                linkElement.style.left = '';
+                                linkElement.style.top = '';
+                                linkElement.style.zIndex = '';
+                                
+                                // Remove drag-over class from all panels
+                                document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+                                
+                                if (longPressTriggered) {
+                                    // Long press was triggered, do nothing
+                                } else if (isDragging) {
+                                    // Find the target panel
+                                    const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
+                                    const targetPanel = elementUnder?.closest('.panel');
+                                    
+                                    if (targetPanel && targetPanel !== panelElement) {
+                                        const targetPanelId = parseInt(targetPanel.dataset.panelId);
+                                        this.moveLinkBetweenPanels(panelId, targetPanelId, linkIndex);
+                                    }
+                                } else if (!isDragging) {
+                                    // This was a click, not a drag
+                                    window.open(url, '_blank');
+                                }
+                                
+                                this.draggedLink = null;
+                                isDragging = false;
+                                
+                                document.removeEventListener('mousemove', handleMouseMove);
+                                document.removeEventListener('mouseup', handleMouseUp);
+                            };
                             
-                            document.removeEventListener('mousemove', handleMouseMove);
-                            document.removeEventListener('mouseup', handleMouseUp);
-                        };
-                        
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                        }, 150); // 150ms delay to allow for long press detection
                         
                         e.preventDefault();
                     });
+                    
+                    // Touch events for mobile
+                    linkElement.addEventListener('touchstart', (e) => {
+                        if (e.target.classList.contains('delete-btn')) return;
+                        
+                        longPressTriggered = false;
+                        startLongPress(e);
+                        e.preventDefault();
+                    }, { passive: false });
+                    
+                    linkElement.addEventListener('touchmove', (e) => {
+                        cancelLongPress();
+                    }, { passive: true });
+                    
+                    linkElement.addEventListener('touchend', (e) => {
+                        cancelLongPress();
+                        if (!longPressTriggered) {
+                            // This was a tap, open the URL
+                            window.open(url, '_blank');
+                        }
+                        e.preventDefault();
+                    }, { passive: false });
+                    
+                    linkElement.addEventListener('mouseup', cancelLongPress);
+                    linkElement.addEventListener('mouseleave', cancelLongPress);
                 });
             }
 
@@ -1325,7 +1520,13 @@
 
         // Initialize the application
         console.log('hello - DropLinks script loaded');
-        const dropLinks = new DropLinks();
+        let dropLinks;
+        try {
+            dropLinks = new DropLinks();
+            console.log('DropLinks initialized successfully');
+        } catch (e) {
+            console.error('Failed to initialize DropLinks:', e);
+        }
     </script>
 </body>
 </html>
