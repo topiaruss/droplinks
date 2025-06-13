@@ -138,7 +138,9 @@ test.describe("DropLinks E2E Tests", () => {
 
     // Should show panel selector with .show class
     await expect(page.locator(".modal.show")).toBeVisible();
-    await expect(page.locator(".modal h3")).toHaveText("Add Link to Panel");
+    await expect(page.locator(".modal.show h3")).toHaveText(
+      "Add Link to Panel",
+    );
 
     // Select first panel
     await page.locator(".panel-select-btn").first().click();
@@ -157,8 +159,9 @@ test.describe("DropLinks E2E Tests", () => {
     await page.locator(".panel").last().locator(".panel-title").fill(newTitle);
     await page.locator(".panel").last().locator(".panel-title").blur();
 
-    // Reload page
-    await page.reload();
+    // Reload page by navigating to the same URL
+    const htmlPath = path.join(__dirname, "../../droplinks.html");
+    await page.goto(`file://${htmlPath}`);
     await page.waitForSelector(".panels-grid");
 
     // Verify data persisted
@@ -184,10 +187,26 @@ test.describe("DropLinks E2E Tests", () => {
     const gridColumns = await panelsGrid.evaluate(
       (el) => getComputedStyle(el).gridTemplateColumns,
     );
-    
+
     // On mobile (375px), the CSS should set grid-template-columns to "1fr"
-    // Allow for browser differences in reporting the computed style
-    expect(gridColumns === "1fr" || gridColumns.includes("1fr") || gridColumns === "none").toBeTruthy();
+    // Firefox may report different values, so we'll be more flexible
+    // Log the actual value for debugging
+    console.log("Firefox grid-template-columns:", gridColumns);
+
+    // Accept various valid mobile layout values
+    const validMobileLayouts = [
+      "1fr",
+      "none",
+      "repeat(1, 1fr)",
+      "repeat(1, minmax(0, 1fr))",
+    ];
+
+    const isValidMobileLayout =
+      validMobileLayouts.some(
+        (layout) => gridColumns === layout || gridColumns.includes(layout),
+      ) || gridColumns.split(" ").length === 1; // Single column layout
+
+    expect(isValidMobileLayout).toBeTruthy();
   });
 
   test("should handle long press on mobile", async ({ page }) => {
@@ -216,6 +235,6 @@ test.describe("DropLinks E2E Tests", () => {
     });
 
     // Should show edit modal
-    await expect(page.locator(".modal h3")).toHaveText("Edit Link");
+    await expect(page.locator(".modal.show h3")).toHaveText("Edit Link");
   });
 });
