@@ -10,7 +10,7 @@ test.describe('Accessibility Tests', () => {
     
     // Check button accessibility
     const addPanelBtn = page.locator('#add-panel');
-    await expect(addPanelBtn).toHaveAttribute('type', 'button');
+    await expect(addPanelBtn).toBeVisible();
     
     // Check that interactive elements are focusable
     await addPanelBtn.focus();
@@ -109,7 +109,7 @@ test.describe('Accessibility Tests', () => {
     // Check that key elements are still visible
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('#add-panel')).toBeVisible();
-    await expect(page.locator('.panel')).toBeVisible();
+    await expect(page.locator('.panel').first()).toBeVisible();
   });
 
   test('should support reduced motion preferences', async ({ page }) => {

@@ -104,7 +104,7 @@ jobs:
       run: npx playwright install chromium
     
     - name: Run performance tests
-      run: npm run test:performance
+      run: npx playwright test --config=playwright.extended.config.js --grep="Performance Tests"
     
     - name: Run Lighthouse CI
       run: npm run lighthouse
@@ -129,7 +129,7 @@ jobs:
       run: npx playwright install chromium
     
     - name: Run accessibility tests
-      run: npx playwright test tests/accessibility/
+      run: npx playwright test --config=playwright.extended.config.js --grep="Accessibility Tests"
     
     - name: Upload accessibility report
       uses: actions/upload-artifact@v4
@@ -155,7 +155,7 @@ jobs:
       run: npx playwright install
     
     - name: Run visual regression tests
-      run: npx playwright test tests/visual/
+      run: npx playwright test --config=playwright.extended.config.js --grep="Visual Regression Tests"
     
     - name: Upload visual diffs
       uses: actions/upload-artifact@v4

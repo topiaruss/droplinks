@@ -46,3 +46,4 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+tests/visual/visual-regression.spec.js-snapshots/

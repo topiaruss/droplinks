@@ -8,7 +8,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
-    "test:performance": "playwright test tests/performance/",
+    "test:performance": "playwright test --config=playwright.extended.config.js --grep=\"Performance Tests\"",
     "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
     "test:cross-browser": "playwright test --project=chromium --project=firefox --project=webkit",
     "test:ci": "npm run test:unit && npm run test:cross-browser && npm run test:performance",
