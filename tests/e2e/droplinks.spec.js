@@ -90,7 +90,7 @@ test.describe("DropLinks E2E Tests", () => {
   test("should simulate file drop", async ({ page }) => {
     // Wait for app to be ready
     await page.waitForFunction(() => window.dropLinks !== undefined);
-    
+
     // Create test data
     const testData = {
       panels: [
@@ -129,7 +129,7 @@ test.describe("DropLinks E2E Tests", () => {
   test("should handle paste URL functionality", async ({ page }) => {
     // Wait for the app to be ready
     await page.waitForFunction(() => window.dropLinks !== undefined);
-    
+
     // Directly trigger the paste URL functionality
     await page.evaluate(() => {
       // Trigger the paste URL functionality directly
@@ -181,7 +181,9 @@ test.describe("DropLinks E2E Tests", () => {
 
     // Check that panels stack vertically on mobile (be more flexible with the assertion)
     const panelsGrid = page.locator(".panels-grid");
-    const gridColumns = await panelsGrid.evaluate(el => getComputedStyle(el).gridTemplateColumns);
+    const gridColumns = await panelsGrid.evaluate(
+      (el) => getComputedStyle(el).gridTemplateColumns,
+    );
     expect(gridColumns.includes("1fr") || gridColumns === "none").toBeTruthy();
   });
 
@@ -191,7 +193,7 @@ test.describe("DropLinks E2E Tests", () => {
 
     // Wait for app to be ready and add a test link
     await page.waitForFunction(() => window.dropLinks !== undefined);
-    
+
     await page.evaluate(() => {
       const testLink = {
         url: "https://example.com",

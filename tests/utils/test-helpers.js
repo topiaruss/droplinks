@@ -217,7 +217,7 @@ class TestHelpers {
       Object.defineProperty(navigator, "clipboard", {
         value: {
           readText: () => Promise.resolve(clipboardText),
-          writeText: (text) => Promise.resolve(),
+          writeText: (_text) => Promise.resolve(),
         },
       });
     }, text);

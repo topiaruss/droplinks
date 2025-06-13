@@ -7,7 +7,7 @@
 const { JSDOM } = require("jsdom");
 
 describe("DropLinks Unit Tests", () => {
-  let dom, window, document, DropLinks, dropLinks;
+  let dom, window, document, dropLinks;
 
   beforeEach(() => {
     // Create a minimal DOM environment
@@ -284,22 +284,4 @@ describe("DropLinks Unit Tests", () => {
   });
 });
 
-// Helper function to extract DropLinks class from HTML file
-function _getDropLinksClassCode() {
-  const fs = require("fs");
-  const path = require("path");
-
-  const htmlContent = fs.readFileSync(
-    path.join(__dirname, "../../droplinks.html"),
-    "utf8",
-  );
-
-  // Extract the class definition from the HTML file
-  const classMatch = htmlContent.match(/class DropLinks \{[\s\S]*?\n {8}\}/);
-
-  if (!classMatch) {
-    throw new Error("Could not extract DropLinks class from HTML file");
-  }
-
-  return classMatch[0];
-}
+// Note: Helper function removed as it was unused

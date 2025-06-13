@@ -517,7 +517,7 @@ class DropLinks {
 
       // Try to fetch page title (this will work for same-origin or CORS-enabled pages)
       try {
-        const _response = await fetch(url, { mode: "no-cors" });
+        await fetch(url, { mode: "no-cors" }); // Try to fetch (result not used due to CORS)
         // Since we can't read the response due to CORS, we'll use the URL-based title
       } catch (_e) {
         // Fallback to URL-based title
@@ -734,7 +734,7 @@ class DropLinks {
     });
   }
 
-  bindLinkEvents(panelElement, panel) {
+  bindLinkEvents(panelElement, _panel) {
     const linkElements = panelElement.querySelectorAll(".link-item");
 
     linkElements.forEach((linkElement) => {
@@ -881,7 +881,7 @@ class DropLinks {
 
       linkElement.addEventListener(
         "touchmove",
-        (e) => {
+        (_e) => {
           cancelLongPress();
         },
         { passive: true },
