@@ -1,5 +1,5 @@
 class DropLinks {
-    constructor() {
+    constructor(options = {}) {
         this.panels = [];
         this.panelCounter = 0;
         this.draggedPanel = null;
@@ -10,7 +10,15 @@ class DropLinks {
         this.syncInterval = null;
         this.fileHandle = null; // For File System Access API
         
-        this.init();
+        // Allow dependency injection for testing
+        this.document = options.document || (typeof document !== 'undefined' ? document : null);
+        this.window = options.window || (typeof window !== 'undefined' ? window : null);
+        this.localStorage = options.localStorage || (typeof localStorage !== 'undefined' ? localStorage : null);
+        
+        // Only initialize if we have a document (skip for unit tests without DOM)
+        if (this.document && !options.skipInit) {
+            this.init();
+        }
     }
 
     init() {
@@ -31,83 +39,108 @@ class DropLinks {
     }
 
     bindEvents() {
+        if (!this.document) return;
+        
         // Add panel button
-        document.getElementById('add-panel').addEventListener('click', () => {
-            this.addPanel();
-        });
+        const addPanelBtn = this.document.getElementById('add-panel');
+        if (addPanelBtn) {
+            addPanelBtn.addEventListener('click', () => {
+                this.addPanel();
+            });
+        }
 
         // View toggle button
-        document.getElementById('view-toggle').addEventListener('click', () => {
-            this.toggleView();
-        });
+        const viewToggleBtn = this.document.getElementById('view-toggle');
+        if (viewToggleBtn) {
+            viewToggleBtn.addEventListener('click', () => {
+                this.toggleView();
+            });
+        }
 
         // Manual sync button
-        document.getElementById('sync-now').addEventListener('click', () => {
-            this.checkForFileUpdates();
-        });
+        const syncBtn = this.document.getElementById('sync-now');
+        if (syncBtn) {
+            syncBtn.addEventListener('click', () => {
+                this.checkForFileUpdates();
+            });
+        }
 
         // Export data button
-        document.getElementById('export-data').addEventListener('click', () => {
-            this.exportData();
-        });
+        const exportBtn = this.document.getElementById('export-data');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportData();
+            });
+        }
 
         // Modal events
-        document.getElementById('confirm-delete').addEventListener('click', () => {
-            this.confirmDelete();
-        });
+        const confirmBtn = this.document.getElementById('confirm-delete');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                this.confirmDelete();
+            });
+        }
 
-        document.getElementById('cancel-delete').addEventListener('click', () => {
-            this.cancelDelete();
-        });
+        const cancelBtn = this.document.getElementById('cancel-delete');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.cancelDelete();
+            });
+        }
 
         // Close modal on background click
-        document.getElementById('confirmation-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'confirmation-modal') {
-                this.cancelDelete();
-            }
-        });
+        const modal = this.document.getElementById('confirmation-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target.id === 'confirmation-modal') {
+                    this.cancelDelete();
+                }
+            });
+        }
 
         // Global drag events for external links and JSON files
-        document.addEventListener('dragenter', (e) => {
+        this.document.addEventListener('dragenter', (e) => {
             console.log('Dragenter event');
             e.preventDefault();
         });
         
-        document.addEventListener('dragover', (e) => {
+        this.document.addEventListener('dragover', (e) => {
             console.log('Dragover event');
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
         });
 
-        document.addEventListener('drop', (e) => {
+        this.document.addEventListener('drop', (e) => {
             console.log('Drop event detected');
             e.preventDefault();
             this.handleGlobalDrop(e);
         });
         
         // Also bind to body specifically
-        document.body.addEventListener('dragover', (e) => {
-            console.log('Body dragover');
-            e.preventDefault();
-        });
-        
-        document.body.addEventListener('drop', (e) => {
-            console.log('Body drop');
-            e.preventDefault();
-            this.handleGlobalDrop(e);
-        });
+        if (this.document.body) {
+            this.document.body.addEventListener('dragover', (e) => {
+                console.log('Body dragover');
+                e.preventDefault();
+            });
+            
+            this.document.body.addEventListener('drop', (e) => {
+                console.log('Body drop');
+                e.preventDefault();
+                this.handleGlobalDrop(e);
+            });
 
-        // Make the page focusable for paste events
-        document.body.tabIndex = -1;
-        document.body.focus();
+            // Make the page focusable for paste events
+            this.document.body.tabIndex = -1;
+            this.document.body.focus();
+        }
 
         // Global paste event for URLs
-        document.addEventListener('paste', (e) => {
+        this.document.addEventListener('paste', (e) => {
             this.handleGlobalPaste(e);
         });
 
         // Alternative: keyboard shortcut (Ctrl+Shift+V or Cmd+Shift+V)
-        document.addEventListener('keydown', (e) => {
+        this.document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
                 e.preventDefault();
                 this.triggerPasteFromClipboard();
@@ -129,7 +162,10 @@ class DropLinks {
 
     deletePanel(panelId) {
         this.deleteTarget = panelId;
-        document.getElementById('confirmation-modal').classList.add('show');
+        const modal = this.document?.getElementById('confirmation-modal');
+        if (modal) {
+            modal.classList.add('show');
+        }
     }
 
     confirmDelete() {
@@ -143,21 +179,28 @@ class DropLinks {
 
     cancelDelete() {
         this.deleteTarget = null;
-        document.getElementById('confirmation-modal').classList.remove('show');
+        const modal = this.document?.getElementById('confirmation-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
     }
 
     toggleView() {
         this.isCompactView = !this.isCompactView;
-        const container = document.getElementById('panels-container');
-        const toggleBtn = document.getElementById('view-toggle');
-        const toggleText = toggleBtn.querySelector('.toggle-text');
+        const container = this.document?.getElementById('panels-container');
+        const toggleBtn = this.document?.getElementById('view-toggle');
+        const toggleText = toggleBtn?.querySelector('.toggle-text');
         
-        if (this.isCompactView) {
-            container.classList.add('compact');
-            toggleText.textContent = 'Large View';
-        } else {
-            container.classList.remove('compact');
-            toggleText.textContent = 'Compact View';
+        if (container) {
+            if (this.isCompactView) {
+                container.classList.add('compact');
+            } else {
+                container.classList.remove('compact');
+            }
+        }
+        
+        if (toggleText) {
+            toggleText.textContent = this.isCompactView ? 'Large View' : 'Compact View';
         }
         
         this.saveToStorage();
@@ -491,7 +534,9 @@ class DropLinks {
     }
 
     render() {
-        const container = document.getElementById('panels-container');
+        const container = this.document?.getElementById('panels-container');
+        if (!container) return;
+        
         container.innerHTML = '';
 
         this.panels.forEach((panel, index) => {
@@ -501,7 +546,7 @@ class DropLinks {
     }
 
     createPanelElement(panel, index) {
-        const panelDiv = document.createElement('div');
+        const panelDiv = this.document.createElement('div');
         panelDiv.className = 'panel';
         panelDiv.draggable = true;
         panelDiv.dataset.panelId = panel.id;
@@ -817,7 +862,9 @@ class DropLinks {
             lastSaveTime: this.lastSaveTime
         };
         
-        localStorage.setItem('droplinks-data', JSON.stringify(data));
+        if (this.localStorage) {
+            this.localStorage.setItem('droplinks-data', JSON.stringify(data));
+        }
         
         // Auto-save to Downloads folder
         this.autoSaveToDownloads(data);
@@ -1002,7 +1049,9 @@ class DropLinks {
     }
 
     loadFromStorage() {
-        const data = localStorage.getItem('droplinks-data');
+        if (!this.localStorage) return;
+        
+        const data = this.localStorage.getItem('droplinks-data');
         if (data) {
             const parsed = JSON.parse(data);
             this.panels = parsed.panels || [];
@@ -1011,16 +1060,20 @@ class DropLinks {
             this.lastSaveTime = parsed.lastSaveTime || null;
             
             // Apply the view state
-            const container = document.getElementById('panels-container');
-            const toggleBtn = document.getElementById('view-toggle');
-            const toggleText = toggleBtn.querySelector('.toggle-text');
+            const container = this.document?.getElementById('panels-container');
+            const toggleBtn = this.document?.getElementById('view-toggle');
+            const toggleText = toggleBtn?.querySelector('.toggle-text');
             
-            if (this.isCompactView) {
-                container.classList.add('compact');
-                toggleText.textContent = 'Large View';
-            } else {
-                container.classList.remove('compact');
-                toggleText.textContent = 'Compact View';
+            if (container) {
+                if (this.isCompactView) {
+                    container.classList.add('compact');
+                } else {
+                    container.classList.remove('compact');
+                }
+            }
+            
+            if (toggleText) {
+                toggleText.textContent = this.isCompactView ? 'Large View' : 'Compact View';
             }
         }
     }
@@ -1062,16 +1115,20 @@ class DropLinks {
                     this.isCompactView = data.isCompactView;
                     
                     // Apply the view state
-                    const container = document.getElementById('panels-container');
-                    const toggleBtn = document.getElementById('view-toggle');
-                    const toggleText = toggleBtn.querySelector('.toggle-text');
+                    const container = this.document?.getElementById('panels-container');
+                    const toggleBtn = this.document?.getElementById('view-toggle');
+                    const toggleText = toggleBtn?.querySelector('.toggle-text');
                     
-                    if (this.isCompactView) {
-                        container.classList.add('compact');
-                        toggleText.textContent = 'Large View';
-                    } else {
-                        container.classList.remove('compact');
-                        toggleText.textContent = 'Compact View';
+                    if (container) {
+                        if (this.isCompactView) {
+                            container.classList.add('compact');
+                        } else {
+                            container.classList.remove('compact');
+                        }
+                    }
+                    
+                    if (toggleText) {
+                        toggleText.textContent = this.isCompactView ? 'Large View' : 'Compact View';
                     }
                 }
                 
@@ -1082,7 +1139,9 @@ class DropLinks {
                     isCompactView: this.isCompactView,
                     lastSaveTime: this.lastSaveTime
                 };
-                localStorage.setItem('droplinks-data', JSON.stringify(saveData));
+                if (this.localStorage) {
+                    this.localStorage.setItem('droplinks-data', JSON.stringify(saveData));
+                }
                 
                 this.render();
                 return true;
