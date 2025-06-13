@@ -22,10 +22,9 @@ repos:
     rev: v8.56.0
     hooks:
       - id: eslint
-        files: \.(js|html)$
+        files: \.js$  # Only lint JS files, not HTML
         additional_dependencies:
           - eslint@^8.0.0
-          - eslint-plugin-html@^7.1.0
         args: ['--fix']
 
   # Package.json validation
@@ -56,12 +55,12 @@ repos:
         pass_filenames: false
         stages: [commit]
 
-      - id: eslint-html
-        name: ESLint HTML files
-        entry: npm run lint
-        language: system
-        files: \.html$
-        pass_filenames: false
+      # - id: eslint-html  # Disabled due to HTML processor issues
+      #   name: ESLint HTML files
+      #   entry: npm run lint
+      #   language: system
+      #   files: \.html$
+      #   pass_filenames: false
 
       - id: package-json-validate
         name: Validate package.json

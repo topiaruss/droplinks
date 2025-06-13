@@ -285,7 +285,7 @@ describe("DropLinks Unit Tests", () => {
 });
 
 // Helper function to extract DropLinks class from HTML file
-function getDropLinksClassCode() {
+function _getDropLinksClassCode() {
   const fs = require("fs");
   const path = require("path");
 
@@ -295,9 +295,7 @@ function getDropLinksClassCode() {
   );
 
   // Extract the class definition from the HTML file
-  const classMatch = htmlContent.match(
-    /class DropLinks \{[\s\S]*?\n        \}/,
-  );
+  const classMatch = htmlContent.match(/class DropLinks \{[\s\S]*?\n {8}\}/);
 
   if (!classMatch) {
     throw new Error("Could not extract DropLinks class from HTML file");

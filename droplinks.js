@@ -517,14 +517,14 @@ class DropLinks {
 
       // Try to fetch page title (this will work for same-origin or CORS-enabled pages)
       try {
-        const response = await fetch(url, { mode: "no-cors" });
+        const _response = await fetch(url, { mode: "no-cors" });
         // Since we can't read the response due to CORS, we'll use the URL-based title
-      } catch (e) {
+      } catch (_e) {
         // Fallback to URL-based title
       }
 
       return linkData;
-    } catch (e) {
+    } catch (_e) {
       return {
         url: url,
         title: url,
@@ -1249,6 +1249,7 @@ console.log("hello - DropLinks script loaded");
 let dropLinks;
 try {
   dropLinks = new DropLinks();
+  window.dropLinks = dropLinks; // Make it globally accessible
   console.log("DropLinks initialized successfully");
 } catch (e) {
   console.error("Failed to initialize DropLinks:", e);

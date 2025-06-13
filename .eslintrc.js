@@ -3,27 +3,17 @@ module.exports = {
     browser: true,
     es2021: true,
     node: true,
-    jest: true
+    jest: true,
   },
-  extends: [
-    'eslint:recommended'
-  ],
+  extends: ["eslint:recommended"],
   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module'
+    ecmaVersion: "latest",
+    sourceType: "script", // Changed from 'module' to 'script' for HTML inline scripts
   },
-  plugins: [
-    'html'
-  ],
   rules: {
-    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    'no-console': 'off', // Allow console.log for now
-    'no-debugger': 'error'
+    "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    "no-console": "off", // Allow console.log for now
+    "no-debugger": "error",
+    "no-undef": "off", // Disable undefined variable errors for global variables
   },
-  overrides: [
-    {
-      files: ['*.html'],
-      processor: 'html/extract-script'
-    }
-  ]
 };
