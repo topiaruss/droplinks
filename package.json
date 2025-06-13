@@ -1,0 +1,58 @@
+{
+  "name": "droplinks",
+  "version": "1.0.0",
+  "description": "Responsive drag-and-drop link organizer",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "jest tests/unit/",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:performance": "playwright test tests/performance/",
+    "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
+    "test:cross-browser": "playwright test --project=chromium --project=firefox --project=webkit",
+    "test:ci": "npm run test:unit && npm run test:cross-browser && npm run test:performance",
+    "test:watch": "jest --watch tests/unit/",
+    "test:coverage": "jest --coverage tests/unit/",
+    "lint": "eslint droplinks.html --ext .html",
+    "lighthouse": "lhci autorun",
+    "report": "playwright show-report",
+    "install-browsers": "playwright install"
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.13.0",
+    "@playwright/test": "^1.40.0",
+    "chrome-launcher": "^1.1.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-html": "^7.1.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.0.0",
+    "jsdom": "^23.0.0",
+    "lighthouse": "^11.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "collectCoverageFrom": [
+      "**/*.{js,html}",
+      "!**/node_modules/**",
+      "!**/tests/**"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/jest.setup.js"
+    ]
+  },
+  "keywords": [
+    "bookmarks",
+    "links",
+    "organizer",
+    "drag-drop",
+    "responsive"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
