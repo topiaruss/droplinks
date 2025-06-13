@@ -129,6 +129,13 @@ repos:
         language: system
         files: \.html$
 
+      - id: npm-audit-check
+        name: Check for npm security vulnerabilities
+        entry: bash -c 'npm audit --audit-level=moderate --production || echo "Warning: Security vulnerabilities found in dependencies"'
+        language: system
+        files: package\.json$
+        pass_filenames: false
+
 # Global configuration
 fail_fast: false
 default_stages: [commit]
