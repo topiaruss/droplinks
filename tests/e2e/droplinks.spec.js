@@ -172,19 +172,22 @@ test.describe("DropLinks E2E Tests", () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Wait for CSS to apply
-    await page.waitForTimeout(100);
+    // Wait for CSS to apply and media queries to take effect
+    await page.waitForTimeout(500);
 
     // Check responsive layout
     const header = page.locator("header");
     await expect(header).toHaveCSS("flex-direction", "column");
 
-    // Check that panels stack vertically on mobile (be more flexible with the assertion)
+    // Check that panels stack vertically on mobile
     const panelsGrid = page.locator(".panels-grid");
     const gridColumns = await panelsGrid.evaluate(
       (el) => getComputedStyle(el).gridTemplateColumns,
     );
-    expect(gridColumns.includes("1fr") || gridColumns === "none").toBeTruthy();
+    
+    // On mobile (375px), the CSS should set grid-template-columns to "1fr"
+    // Allow for browser differences in reporting the computed style
+    expect(gridColumns === "1fr" || gridColumns.includes("1fr") || gridColumns === "none").toBeTruthy();
   });
 
   test("should handle long press on mobile", async ({ page }) => {

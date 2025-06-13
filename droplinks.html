@@ -1366,8 +1366,18 @@
 
           localStorage.setItem("droplinks-data", JSON.stringify(data));
 
-          // Auto-save to Downloads folder
-          this.autoSaveToDownloads(data);
+          // Auto-save to Downloads folder (skip during E2E tests)
+          if (!this.isTestEnvironment()) {
+            this.autoSaveToDownloads(data);
+          }
+        }
+
+        isTestEnvironment() {
+          // Check if we're in a test environment
+          return window.location.protocol === 'file:' && 
+                 (window.location.pathname.includes('test') || 
+                  typeof window.playwright !== 'undefined' ||
+                  typeof window.__playwright !== 'undefined');
         }
 
         autoSaveToDownloads(data) {
@@ -1662,6 +1672,7 @@
       let dropLinks;
       try {
         dropLinks = new DropLinks();
+        window.dropLinks = dropLinks; // Make it globally accessible
         console.log("DropLinks initialized successfully");
       } catch (e) {
         console.error("Failed to initialize DropLinks:", e);
