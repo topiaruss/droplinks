@@ -205,6 +205,11 @@
         gap: 0.5rem;
       }
 
+      .compact .link-title {
+        -webkit-line-clamp: 1; /* Single line in compact view */
+        max-height: calc(1.4em * 1);
+      }
+
       .link-item:hover {
         background: #edf2f7;
         transform: translateX(4px);
@@ -232,10 +237,15 @@
       .link-title {
         font-weight: 500;
         color: #2d3748;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         margin-bottom: 0.25rem;
+        /* Multi-line approach for better mobile readability */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        white-space: normal;
+        line-height: 1.4;
+        max-height: calc(1.4em * 2); /* 2 lines worth */
       }
 
       .link-url {
@@ -374,6 +384,11 @@
         .btn {
           flex: 1;
           text-align: center;
+        }
+
+        .link-title {
+          -webkit-line-clamp: 3; /* More lines on mobile since cards are full-width */
+          max-height: calc(1.4em * 3);
         }
       }
 
