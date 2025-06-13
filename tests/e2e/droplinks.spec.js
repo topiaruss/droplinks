@@ -237,4 +237,118 @@ test.describe("DropLinks E2E Tests", () => {
     // Should show edit modal
     await expect(page.locator(".modal.show h3")).toHaveText("Edit Link");
   });
+
+  test("should open links when clicked", async ({ page }) => {
+    // Wait for app to be ready
+    await page.waitForFunction(() => window.dropLinks !== undefined);
+
+    // Add a test link
+    await page.evaluate(() => {
+      const testLink = {
+        url: "https://example.com",
+        title: "Test Link",
+        domain: "example.com",
+        favicon: "https://www.google.com/s2/favicons?domain=example.com&sz=32",
+      };
+      window.dropLinks.panels[0].links.push(testLink);
+      window.dropLinks.render();
+    });
+
+    // Wait for link to be rendered
+    await expect(page.locator(".link-item")).toHaveCount(1);
+
+    // Listen for new page/tab opening
+    const [newPage] = await Promise.all([
+      page.context().waitForEvent("page"),
+      page.locator(".link-item").first().click(),
+    ]);
+
+    // Verify the new page opened with correct URL
+    expect(newPage.url()).toBe("https://example.com/");
+  });
+
+  test("should drag links between panels", async ({ page }) => {
+    // Wait for app to be ready
+    await page.waitForFunction(() => window.dropLinks !== undefined);
+
+    // Add a test link to the first panel
+    await page.evaluate(() => {
+      const testLink = {
+        url: "https://example.com",
+        title: "Draggable Link",
+        domain: "example.com",
+        favicon: "https://www.google.com/s2/favicons?domain=example.com&sz=32",
+      };
+      window.dropLinks.panels[0].links.push(testLink);
+      window.dropLinks.render();
+    });
+
+    // Wait for link to be rendered
+    await expect(page.locator(".link-item")).toHaveCount(1);
+
+    // Verify link is in first panel initially
+    await expect(
+      page.locator(".panel").nth(0).locator(".link-item"),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(".panel").nth(1).locator(".link-item"),
+    ).toHaveCount(0);
+
+    // Get the link and target panel elements
+    const linkElement = page.locator(".link-item").first();
+    const targetPanel = page.locator(".panel").nth(1);
+
+    // Perform drag from link to second panel
+    await linkElement.dragTo(targetPanel);
+
+    // Wait a moment for the drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Verify link moved to second panel
+    await expect(
+      page.locator(".panel").nth(0).locator(".link-item"),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(".panel").nth(1).locator(".link-item"),
+    ).toHaveCount(1);
+  });
+
+  test("should drag panels to reorder them", async ({ page }) => {
+    // Wait for app to be ready
+    await page.waitForFunction(() => window.dropLinks !== undefined);
+
+    // Verify initial panel order
+    await expect(
+      page.locator(".panel").nth(0).locator(".panel-title"),
+    ).toHaveText("Panel 1");
+    await expect(
+      page.locator(".panel").nth(1).locator(".panel-title"),
+    ).toHaveText("Panel 2");
+    await expect(
+      page.locator(".panel").nth(2).locator(".panel-title"),
+    ).toHaveText("Panel 3");
+
+    // Get panel elements - drag from panel header to avoid links
+    const firstPanel = page.locator(".panel").nth(0).locator(".panel-header");
+    const thirdPanel = page.locator(".panel").nth(2);
+
+    // Perform drag from first panel to third panel position
+    await firstPanel.dragTo(thirdPanel);
+
+    // Wait a moment for the drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Verify panel order changed - Panel 1 should now be at the end
+    const panels = page.locator(".panel");
+    await expect(panels).toHaveCount(3);
+
+    // Check if the order changed (exact order depends on implementation)
+    const firstPanelTitle = await panels
+      .nth(0)
+      .locator(".panel-title")
+      .textContent();
+
+    // Panel 1 should no longer be first
+    expect(firstPanelTitle).not.toBe("Panel 1");
+  });
 });
