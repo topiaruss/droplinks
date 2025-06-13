@@ -1,5 +1,5 @@
 // Jest setup file
-const { TextEncoder, TextDecoder } = require('util');
+const { TextEncoder, TextDecoder } = require("util");
 
 // Make TextEncoder and TextDecoder available globally
 global.TextEncoder = TextEncoder;

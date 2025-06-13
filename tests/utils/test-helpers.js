@@ -6,7 +6,7 @@ class TestHelpers {
   /**
    * Create mock file for drag and drop testing
    */
-  static createMockFile(filename, content, type = 'application/json') {
+  static createMockFile(filename, content, type = "application/json") {
     return new File([content], filename, { type });
   }
 
@@ -23,83 +23,98 @@ class TestHelpers {
           title: `Test Link ${i}-${j}`,
           domain: `test${i}-${j}.com`,
           favicon: `https://www.google.com/s2/favicons?domain=test${i}-${j}.com&sz=32`,
-          timestamp: Date.now()
-        }))
+          timestamp: Date.now(),
+        })),
       })),
       panelCounter: panelCount,
       isCompactView: false,
       lastSaveTime: new Date().toISOString(),
-      version: '1.0'
+      version: "1.0",
     };
   }
 
   /**
    * Simulate drag and drop events
    */
-  static async simulateDragDrop(page, sourceSelector, targetSelector, dataTransferData = {}) {
-    await page.evaluate(({ source, target, data }) => {
-      const sourceElement = document.querySelector(source);
-      const targetElement = document.querySelector(target);
+  static async simulateDragDrop(
+    page,
+    sourceSelector,
+    targetSelector,
+    dataTransferData = {},
+  ) {
+    await page.evaluate(
+      ({ source, target, data }) => {
+        const sourceElement = document.querySelector(source);
+        const targetElement = document.querySelector(target);
 
-      // Create drag start event
-      const dragStartEvent = new DragEvent('dragstart', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer: new DataTransfer()
-      });
+        // Create drag start event
+        const dragStartEvent = new DragEvent("dragstart", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: new DataTransfer(),
+        });
 
-      // Add data to dataTransfer
-      Object.keys(data).forEach(key => {
-        dragStartEvent.dataTransfer.setData(key, data[key]);
-      });
+        // Add data to dataTransfer
+        Object.keys(data).forEach((key) => {
+          dragStartEvent.dataTransfer.setData(key, data[key]);
+        });
 
-      sourceElement.dispatchEvent(dragStartEvent);
+        sourceElement.dispatchEvent(dragStartEvent);
 
-      // Create drag over event
-      const dragOverEvent = new DragEvent('dragover', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer: dragStartEvent.dataTransfer
-      });
+        // Create drag over event
+        const dragOverEvent = new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dragStartEvent.dataTransfer,
+        });
 
-      targetElement.dispatchEvent(dragOverEvent);
+        targetElement.dispatchEvent(dragOverEvent);
 
-      // Create drop event
-      const dropEvent = new DragEvent('drop', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer: dragStartEvent.dataTransfer
-      });
+        // Create drop event
+        const dropEvent = new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dragStartEvent.dataTransfer,
+        });
 
-      targetElement.dispatchEvent(dropEvent);
-    }, { source: sourceSelector, target: targetSelector, data: dataTransferData });
+        targetElement.dispatchEvent(dropEvent);
+      },
+      {
+        source: sourceSelector,
+        target: targetSelector,
+        data: dataTransferData,
+      },
+    );
   }
 
   /**
    * Simulate file drop
    */
-  static async simulateFileDrop(page, files, targetSelector = 'body') {
-    await page.evaluate(({ fileData, target }) => {
-      const targetElement = document.querySelector(target);
-      
-      const dropEvent = new DragEvent('drop', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer: new DataTransfer()
-      });
+  static async simulateFileDrop(page, files, targetSelector = "body") {
+    await page.evaluate(
+      ({ fileData, target }) => {
+        const targetElement = document.querySelector(target);
 
-      // Create File objects
-      const fileObjects = fileData.map(({ name, content, type }) => 
-        new File([content], name, { type })
-      );
+        const dropEvent = new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: new DataTransfer(),
+        });
 
-      // Add files to dataTransfer
-      fileObjects.forEach(file => {
-        dropEvent.dataTransfer.items.add(file);
-      });
+        // Create File objects
+        const fileObjects = fileData.map(
+          ({ name, content, type }) => new File([content], name, { type }),
+        );
 
-      targetElement.dispatchEvent(dropEvent);
-    }, { fileData: files, target: targetSelector });
+        // Add files to dataTransfer
+        fileObjects.forEach((file) => {
+          dropEvent.dataTransfer.items.add(file);
+        });
+
+        targetElement.dispatchEvent(dropEvent);
+      },
+      { fileData: files, target: targetSelector },
+    );
   }
 
   /**
@@ -112,16 +127,18 @@ class TestHelpers {
 
     while (Date.now() - startTime < timeout) {
       const currentPosition = await page.locator(selector).boundingBox();
-      
-      if (lastPosition && 
-          currentPosition.x === lastPosition.x && 
-          currentPosition.y === lastPosition.y) {
+
+      if (
+        lastPosition &&
+        currentPosition.x === lastPosition.x &&
+        currentPosition.y === lastPosition.y
+      ) {
         stableCount++;
         if (stableCount >= 3) break; // Stable for 3 checks
       } else {
         stableCount = 0;
       }
-      
+
       lastPosition = currentPosition;
       await page.waitForTimeout(100);
     }
@@ -133,24 +150,24 @@ class TestHelpers {
   static async simulateLongPress(page, selector, duration = 800) {
     const element = page.locator(selector);
     const boundingBox = await element.boundingBox();
-    
+
     const x = boundingBox.x + boundingBox.width / 2;
     const y = boundingBox.y + boundingBox.height / 2;
 
     // Start touch
     await page.touchscreen.tap(x, y);
-    
+
     // Hold for duration
     await page.waitForTimeout(duration);
-    
+
     // Release
-    await element.dispatchEvent('touchend');
+    await element.dispatchEvent("touchend");
   }
 
   /**
    * Check localStorage data
    */
-  static async getLocalStorageData(page, key = 'droplinks-data') {
+  static async getLocalStorageData(page, key = "droplinks-data") {
     return await page.evaluate((storageKey) => {
       const data = localStorage.getItem(storageKey);
       return data ? JSON.parse(data) : null;
@@ -160,10 +177,13 @@ class TestHelpers {
   /**
    * Set localStorage data
    */
-  static async setLocalStorageData(page, data, key = 'droplinks-data') {
-    await page.evaluate(({ storageKey, storageData }) => {
-      localStorage.setItem(storageKey, JSON.stringify(storageData));
-    }, { storageKey: key, storageData: data });
+  static async setLocalStorageData(page, data, key = "droplinks-data") {
+    await page.evaluate(
+      ({ storageKey, storageData }) => {
+        localStorage.setItem(storageKey, JSON.stringify(storageData));
+      },
+      { storageKey: key, storageData: data },
+    );
   }
 
   /**
@@ -178,10 +198,14 @@ class TestHelpers {
   /**
    * Take screenshot with custom name
    */
-  static async takeScreenshot(page, name, path = './test-results/screenshots/') {
-    await page.screenshot({ 
+  static async takeScreenshot(
+    page,
+    name,
+    path = "./test-results/screenshots/",
+  ) {
+    await page.screenshot({
       path: `${path}${name}-${Date.now()}.png`,
-      fullPage: true 
+      fullPage: true,
     });
   }
 
@@ -190,11 +214,11 @@ class TestHelpers {
    */
   static async mockClipboard(page, text) {
     await page.addInitScript((clipboardText) => {
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           readText: () => Promise.resolve(clipboardText),
-          writeText: (text) => Promise.resolve()
-        }
+          writeText: (text) => Promise.resolve(),
+        },
       });
     }, text);
   }
@@ -203,14 +227,21 @@ class TestHelpers {
    * Verify panel order
    */
   static async verifyPanelOrder(page, expectedTitles) {
-    const actualTitles = await page.locator('.panel-title').allTextContents();
-    return actualTitles.every((title, index) => title === expectedTitles[index]);
+    const actualTitles = await page.locator(".panel-title").allTextContents();
+    return actualTitles.every(
+      (title, index) => title === expectedTitles[index],
+    );
   }
 
   /**
    * Count elements with retry
    */
-  static async countElementsWithRetry(page, selector, expectedCount, maxRetries = 5) {
+  static async countElementsWithRetry(
+    page,
+    selector,
+    expectedCount,
+    maxRetries = 5,
+  ) {
     for (let i = 0; i < maxRetries; i++) {
       const count = await page.locator(selector).count();
       if (count === expectedCount) return count;
